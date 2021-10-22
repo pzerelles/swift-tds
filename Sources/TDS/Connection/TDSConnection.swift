@@ -49,3 +49,14 @@ public final class TDSConnection {
     assert(self.didClose, "TDSConnection deinitialized before being closed.")
   }
 }
+
+#if compiler(>=5.5) && canImport(_Concurrency)
+  @available(macOS 12, iOS 15, watchOS 8, tvOS 15, *)
+
+  extension TDSConnection {
+    public func close() async throws {
+      return try await close().get()
+    }
+  }
+
+#endif

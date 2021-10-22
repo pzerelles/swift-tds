@@ -61,14 +61,9 @@ class LoginRequest: TDSRequest {
     public func login(username: String, password: String, server: String, database: String)
       async throws
     {
-      let payload = TDSMessages.Login7Message(
-        username: username,
-        password: password,
-        serverName: server,
-        database: database
-      )
-      return try await self.send(LoginRequest(payload: payload, logger: logger), logger: logger)
-        .get()
+      return try await login(
+        username: username, password: password, server: server, database: database
+      ).get()
     }
   }
 #endif

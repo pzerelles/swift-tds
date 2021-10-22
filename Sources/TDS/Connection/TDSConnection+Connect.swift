@@ -91,37 +91,10 @@ private final class TDSErrorHandler: ChannelInboundHandler {
       serverHostname: String? = nil,
       on eventLoop: EventLoop
     ) async throws -> TDSConnection {
-      let bootstrap = ClientBootstrap(group: eventLoop)
-        .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
-
-      let logger = Logger(label: "swift-tds")
-
-      // TDSMessage decoders
-      let firstDecoder = ByteToMessageHandler(TDSPacketDecoder(logger: logger))
-      let firstEncoder = MessageToByteHandler(TDSPacketEncoder(logger: logger))
-
-      return try await bootstrap.connect(to: socketAddress).flatMap { channel in
-        return channel.pipeline.addHandlers([
-          firstDecoder,
-          firstEncoder,
-          TDSRequestHandler(
-            logger: logger, firstDecoder, firstEncoder, tlsConfiguration, serverHostname),
-          TDSErrorHandler(logger: logger),
-        ]).map {
-          return TDSConnection(channel: channel, logger: logger)
-        }
-      }.flatMap { conn in
-        return conn.prelogin(shouldNegotiateEncryption: tlsConfiguration != nil ? true : false)
-          .flatMapError { error in
-            conn.close().flatMapThrowing {
-              throw error
-            }
-          }.map {
-            return conn
-          }
-      }.flatMap { conn in
-        return eventLoop.makeSucceededFuture(conn)
-      }.get()
+      return try await connect(
+        to: socketAddress, tlsConfiguration: tlsConfiguration, serverHostname: serverHostname,
+        on: eventLoop
+      ).get()
     }
   }
 
