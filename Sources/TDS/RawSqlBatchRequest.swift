@@ -24,6 +24,25 @@ extension TDSConnection {
   }
 }
 
+#if compiler(>=5.5) && canImport(_Concurrency)
+  @available(macOS 12, iOS 15, watchOS 8, tvOS 15, *)
+
+  extension TDSConnection {
+    public func rawSql(_ sqlText: String) async throws -> [TDSRow] {
+      var rows: [TDSRow] = []
+      try await rawSql(sqlText, onRow: { rows.append($0) })
+      return rows
+    }
+
+    public func rawSql(_ sqlText: String, onRow: @escaping (TDSRow) throws -> Void) async throws {
+      let request = RawSqlBatchRequest(
+        sqlBatch: TDSMessages.RawSqlBatchMessage(sqlText: sqlText), logger: logger, onRow)
+      return try await self.send(request, logger: logger).get()
+    }
+  }
+
+#endif
+
 class RawSqlBatchRequest: TDSRequest {
   let sqlBatch: TDSMessages.RawSqlBatchMessage
   var onRow: (TDSRow) throws -> Void
