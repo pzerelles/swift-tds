@@ -1,29 +1,33 @@
-import NIO
 import Logging
+import NIO
 
 public final class TDSPacketDecoder: ByteToMessageDecoder {
-    /// See `ByteToMessageDecoder`.
-    public typealias InboundOut = TDSPacket
+  /// See `ByteToMessageDecoder`.
+  public typealias InboundOut = TDSPacket
 
-    let logger: Logger
-    
-    /// Creates a new `TDSPacketDecoder`.
-    public init(logger: Logger) {
-        self.logger = logger
+  let logger: Logger
+
+  /// Creates a new `TDSPacketDecoder`.
+  public init(logger: Logger) {
+    self.logger = logger
+  }
+
+  /// See `ByteToMessageDecoder`.
+  public func decode(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws
+    -> DecodingState
+  {
+    while let packet = TDSPacket(from: &buffer) {
+      context.fireChannelRead(wrapInboundOut(packet))
+      return .continue
     }
-    
-    /// See `ByteToMessageDecoder`.
-    public func decode(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
-        while let packet = TDSPacket(from: &buffer) {
-            context.fireChannelRead(wrapInboundOut(packet))
-            return .continue
-        }
-        
-        return .needMoreData
-    }
-    
-    public func decodeLast(context: ChannelHandlerContext, buffer: inout ByteBuffer, seenEOF: Bool) throws -> DecodingState {
-        logger.debug("Decoding last")
-        return .needMoreData
-    }
+
+    return .needMoreData
+  }
+
+  public func decodeLast(context: ChannelHandlerContext, buffer: inout ByteBuffer, seenEOF: Bool)
+    throws -> DecodingState
+  {
+    logger.debug("Decoding last")
+    return .needMoreData
+  }
 }
